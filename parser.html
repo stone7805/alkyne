@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>炔烃学习记录解析页 V3.4</title>
+  <style>
+    :root{--paper:#f6f3e9;--card:#fffdf8;--ink:#183239;--muted:#526b70;--line:#d7ded5;--teal:#126b61;--soft:#e6f3ed;--gold-soft:#fff1d3;--red:#a83736}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.58 system-ui,"Microsoft YaHei",sans-serif}button,textarea{font:inherit}button{cursor:pointer;border:1px solid #b9c9c3;border-radius:12px;background:#fff;padding:10px 15px;min-height:44px;color:var(--ink)}button:hover{border-color:var(--teal)}button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700}.wrap{max-width:1180px;margin:auto;padding:24px 18px 50px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 7px 28px #1832390d;padding:22px;margin-bottom:17px}h1{margin:0 0 8px;font-size:clamp(25px,4vw,36px)}h2{margin:0 0 8px;font-size:21px}.lead,.note{color:var(--muted)}textarea{width:100%;min-height:160px;padding:12px;border:1px solid #aebfb9;border-radius:12px;background:#fff;resize:vertical}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.status{padding:12px 14px;border-radius:12px;background:var(--gold-soft);white-space:pre-line}.status.good{background:var(--soft)}.status.bad{background:#fff0ed;color:#7a2f2b}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.summary div{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff}.summary small{display:block;color:var(--muted)}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}th,td{padding:8px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}th{background:#f1f6f1}td.detail{white-space:normal;min-width:210px}.tag{display:inline-block;background:var(--soft);color:var(--teal);border-radius:99px;padding:3px 9px;font-size:12px}.footer{border-top:1px solid var(--line);margin-top:18px;padding-top:12px;color:var(--muted);font-size:12px}@media(max-width:760px){.wrap{padding:14px 10px 35px}.card{padding:16px}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{font-size:13px;padding:7px}.summary div{font-size:14px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>炔烃学习记录解析页</h1>
+      <p class="lead">V3.4 · 把学生发来的 QQ 简报或完整记录短码粘贴到下面。解析在本机完成，不会自动上传。</p>
+      <textarea id="code" placeholder="粘贴包含 ALK34. 的 QQ 内容或完整记录短码"></textarea>
+      <div class="actions"><button id="parse" class="primary">解析并还原表格</button><button id="clear">清空</button></div>
+      <p class="note">短码是压缩编码，不是加密或防作弊凭证。校验码只能帮助发现复制过程中的缺字、错字或截断。</p>
+      <div id="status" class="status" role="status" aria-live="polite">等待粘贴记录。</div>
+    </section>
+    <section id="report" class="card" hidden>
+      <h2>身份与总览</h2><div id="summary" class="summary"></div>
+      <div class="actions"><button id="download" class="primary">下载解析表格 CSV</button><button id="copyTable">复制当前摘要</button></div>
+    </section>
+    <section id="taskCard" class="card" hidden><h2>任务汇总</h2><div class="table-wrap"><table><thead><tr><th>关卡</th><th>任务</th><th>正式尝试</th><th>提示/救援</th><th>正式错题</th><th>变式</th><th>通过快照</th></tr></thead><tbody id="tasks"></tbody></table></div></section>
+    <section id="eventCard" class="card" hidden><h2>逐次操作轨迹</h2><p class="note">序号和活动秒数按短码内的增量记录还原；早期事件如果页面曾经提示“已截断”，以覆盖范围说明为准。</p><div class="table-wrap"><table><thead><tr><th>序号</th><th>活动秒</th><th>关卡</th><th>模式</th><th>事件</th><th>操作值</th><th>说明</th></tr></thead><tbody id="events"></tbody></table></div></section>
+    <p class="footer">课堂形成性反馈工具 · 本地解析，不替代学校正式成绩系统。含身份信息的表格请仅私下保存和发送。</p>
+  </main>
+  <script>
+  (function(){'use strict';
+    var TASKS=[
+      ['命名侦探','N1','第一份标签：辨认三键'],['命名侦探','N2','第二份标签：给三键编号'],['命名侦探','N3','第三份标签：中间的三键'],['命名侦探','N4','第四份标签：识别支链'],
+      ['结构简式工厂','S1','给乙炔搭结构'],['结构简式工厂','S2','给 1-丁炔搭结构'],['结构简式工厂','S3','给 2-丁炔搭结构'],['结构简式工厂','S4','搭建带支链的炔烃'],
+      ['异构体工坊','I1','C₄H₆：先筛后去重'],['异构体工坊','I2','C₅H₈：辨位置与骨架'],
+      ['证据鉴别实验室','E1','任务1：先看懂橙色'],['证据鉴别实验室','E2','任务2：都褪色，还能区分吗？'],['证据鉴别实验室','E3','任务3：未知 X 能说到哪一步']
+    ];
+    var MODES=['其他','正式','变式','热身','引导','阶段记录','学习短码'];
+    var TYPES={choice:'点选',confirm:'确认步骤',hint:'提示',lab_run:'运行虚拟观察',incomplete:'提交阻断',blocked:'操作阻断',submit:'提交',rescue_open:'打开救援',rescue_choice:'救援作答',warmup_choice:'热身作答',warmup_skip:'跳过热身',progress_export:'导出阶段记录',share_copy:'复制短码'};
+    var current=null,currentCode='';
+    function $(id){return document.getElementById(id)}
+    function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+    function crc32(bytes){var crc=-1;for(var i=0;i<bytes.length;i++){crc^=bytes[i];for(var j=0;j<8;j++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}return (crc^-1)>>>0}
+    function hex8(n){return ('00000000'+n.toString(16).toUpperCase()).slice(-8)}
+    function fromB64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var raw=atob(s),out=[];for(var i=0;i<raw.length;i++)out.push(raw.charCodeAt(i));return out}
+    function unpackNumbers(bytes){var out=[],cur=0,mul=1;for(var i=0;i<bytes.length;i++){var b=bytes[i];cur+=(b&127)*mul;if(b&128){mul*=128}else{out.push(cur);cur=0;mul=1}}if(mul!==1)throw Error('压缩数据不完整');return out}
+    function lzwUnpack(bytes){var codes=unpackNumbers(bytes);if(!codes.length)throw Error('短码为空');if(codes[0]>255)throw Error('压缩字典起点无效');var dict=[],prev=[codes[0]],out=prev.slice(),next=256;for(var i=1;i<codes.length;i++){var code=codes[i],entry;if(code<256)entry=[code];else if(dict[code])entry=dict[code];else if(code===next)entry=prev.concat(prev[0]);else throw Error('压缩字典损坏');for(var j=0;j<entry.length;j++)out.push(entry[j]);dict[next++]=prev.concat(entry[0]);prev=entry}return out}
+    function utf8(bytes){if(typeof TextDecoder!=='undefined')return new TextDecoder('utf-8',{fatal:true}).decode(new Uint8Array(bytes));var raw='';for(var i=0;i<bytes.length;i++)raw+=String.fromCharCode(bytes[i]);return decodeURIComponent(escape(raw))}
+    function getCode(text){var m=String(text||'').match(/ALK34\.([A-Za-z0-9_-]+)\.([0-9A-Fa-f]{8})/);if(!m)throw Error('没有找到 ALK34 短码');return {body:m[1],check:m[2].toUpperCase()}}
+    function str(dict,index){return dict[index]==null?'':String(dict[index])}
+    function parse(text){var found=getCode(text),packed=fromB64(found.body);if(hex8(crc32(packed))!==found.check)throw Error('校验码不一致：短码可能缺字、错字或被截断');var payload=JSON.parse(utf8(lzwUnpack(packed)));if(!payload||payload.v!==1||!Array.isArray(payload.i)||!Array.isArray(payload.s)||!Array.isArray(payload.d)||!Array.isArray(payload.r)||!Array.isArray(payload.e))throw Error('不是 V3.4 学习短码');var dict=payload.d;return {p:payload,dict:dict,code:'ALK34.'+found.body+'.'+found.check}}
+    function fmtTime(sec){sec=Number(sec)||0;var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return (h?h+'小时':'')+(m?m+'分':'')+s+'秒'}
+    function date(v){return v?new Date(Number(v)).toLocaleString('zh-CN',{hour12:false}):'未结束'}
+    function mode(v){return MODES[v]||'未知('+v+')'}
+    function eventType(v){return TYPES[v]||v||'未知事件'}
+    function taskStatus(rec){return rec[7]?'正式通过':rec[3]?(rec[5]?'错题已掌握':'待变式'):'未通过'}
+    function render(data){current=data;currentCode=data.code;var p=data.p,d=data.dict,identity=p.i,summary=[['班级',str(d,identity[0])],['姓名',str(d,identity[1])],['学号',identity[2]],['记录编号',identity[3]],['状态',p.s[0]?'已通关':'进行中'],['总分',p.s[1]+'/100'],['页面活动时间',fmtTime(p.s[2])],['开始/结束',date(p.s[3])+' / '+date(p.s[4])],['自评最难',str(d,p.s[5])||'未填写'],['覆盖范围',str(d,p.s[6])||'全程']];$('summary').innerHTML=summary.map(function(x){return '<div><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong></div>'}).join('');$('tasks').innerHTML=p.r.map(function(r,i){var t=TASKS[i]||['未知关卡','T'+i,'未知任务'];return '<tr><td>'+esc(t[0])+'</td><td><span class="tag">'+esc(t[1])+'</span> '+esc(t[2])+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+esc(r[3]?'是':'否')+'</td><td>'+esc(r[5]?'已掌握':r[3]?'待完成':'无需')+'</td><td>'+esc(taskStatus(r))+'</td></tr>'}).join('');var seq=0,seconds=0;$('events').innerHTML=p.e.map(function(e){seq+=e[0];seconds+=e[4];var t=TASKS[e[1]]||['未知关卡','T'+e[1],'未知任务'];return '<tr><td>'+seq+'</td><td>'+seconds+'</td><td>'+esc(t[1]+' · '+t[2])+'</td><td>'+esc(mode(e[2]))+'</td><td>'+esc(eventType(str(d,e[3])))+'</td><td class="detail">'+esc(str(d,e[5]))+'</td><td class="detail">'+esc(str(d,e[6]))+'</td></tr>'}).join('');$('report').hidden=false;$('taskCard').hidden=false;$('eventCard').hidden=false;$('status').className='status good';$('status').textContent='解析成功。校验码通过；已还原 '+p.r.length+' 个任务和 '+p.e.length+' 条操作事件。'}
+    function csv(v){var s=String(v==null?'':v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+    function csvText(){if(!current)return '';var p=current.p,d=current.dict,rows=[['记录编号','班级','姓名','学号','状态','总分','活动秒','关卡','任务编号','任务名称','正式尝试','提示/救援','正式错题','变式状态','通过快照']];p.r.forEach(function(r,i){var t=TASKS[i]||['未知','T'+i,'未知'];rows.push([p.i[3],str(d,p.i[0]),str(d,p.i[1]),p.i[2],p.s[0]?'已通关':'进行中',p.s[1],p.s[2],t[0],t[1],t[2],r[0],r[1],r[3]?'是':'否',r[5]?'已掌握':r[3]?'待完成':'无需',r[7]?'是':'否'])});return '\ufeff'+rows.map(function(row){return row.map(csv).join(',')}).join('\r\n')}
+    function download(){var blob=new Blob([csvText()],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='炔烃_'+(current?current.p.i[3]:'解析')+'_短码解析.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000)}
+    function brief(){if(!current)return '';var p=current.p,d=current.dict;return ['【炔烃学习记录解析】','班级：'+str(d,p.i[0])+'｜姓名：'+str(d,p.i[1])+'｜学号：'+p.i[2],'记录号：'+p.i[3]+'｜状态：'+(p.s[0]?'已通关':'进行中')+'｜成绩：'+p.s[1]+'/100','活动用时：'+fmtTime(p.s[2]),'操作事件：'+p.e.length+' 条｜覆盖：'+str(d,p.s[6])].join('\n')}
+    $('parse').onclick=function(){try{render(parse($('code').value))}catch(e){$('report').hidden=true;$('taskCard').hidden=true;$('eventCard').hidden=true;$('status').className='status bad';$('status').textContent='解析失败：'+e.message}};
+    $('clear').onclick=function(){$('code').value='';$('report').hidden=true;$('taskCard').hidden=true;$('eventCard').hidden=true;$('status').className='status';$('status').textContent='等待粘贴记录。';current=null};$('download').onclick=function(){if(current)download()};$('copyTable').onclick=function(){if(current&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(brief()).then(function(){alert('已复制摘要。')},function(){alert(brief())});else if(current)alert(brief())};
+  })();
+  </script>
+</body>
+</html>
